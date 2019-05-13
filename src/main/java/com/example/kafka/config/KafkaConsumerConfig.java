@@ -23,20 +23,36 @@ public class KafkaConsumerConfig {
         this.topicConfig = topicConfig;
     }
 
-    @Bean
-    public ConsumerFactory<String, String> consumerFactory() {
+    public Map<String, Object> getProps(String groupId) {
         Map<String, Object> props = new HashMap();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, topicConfig.getBootstrapAddress());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, topicConfig.getGroupId());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        return new DefaultKafkaConsumerFactory<>(props);
+        return props;
+    }
+
+    @Bean
+    public ConsumerFactory<String, String> messageConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(getProps(topicConfig.getMessageGroupId()));
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory containerFactory = new ConcurrentKafkaListenerContainerFactory();
-        containerFactory.setConsumerFactory(consumerFactory());
+        containerFactory.setConsumerFactory(messageConsumerFactory());
+        return containerFactory;
+    }
+
+    @Bean
+    public ConsumerFactory<String, String> partitionedConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(getProps(topicConfig.getPartitionGroupId()));
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> partitionedListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory containerFactory = new ConcurrentKafkaListenerContainerFactory();
+        containerFactory.setConsumerFactory(partitionedConsumerFactory());
         return containerFactory;
     }
 
